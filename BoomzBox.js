@@ -4,11 +4,11 @@
 * Copyright (c) 2011 Jakob Perry
 * node-gmlan is freely distributable under the terms of the GPLv2 license.
 */
-
+var buffertools = require('buffertools');
 var fs = require('fs');
-var sys = require('util')
-  , SerialPort = require('serialport').SerialPort
-  ;
+var sys = require('util');
+var serialport = require('serialport');
+var SerialPort = serialport.SerialPort;
 
 const SERIAL_BAUDRATE = 19200;
 
@@ -17,7 +17,7 @@ var m_deviceInitialized; //bool
 var m_devicePowered;  //bool
 var m_currentFreq;   //int 
 var m_HDLock = false; //bool
-var m_currentChannel = new RadioChannel(88.1);
+var m_currentChannel = new RadioChannel(929);
 
 function RadioChannel(freq) {
         this.m_freq = freq;
@@ -32,7 +32,10 @@ function RadioChannel(freq) {
 
 BoomzBox = function (path) {
   m_devicePowered = false;
-  this.m_port = new SerialPort(path, {baudrate: SERIAL_BAUDRATE});
+  this.m_port = new SerialPort(path, {
+     baudrate: SERIAL_BAUDRATE,
+     parser: serialport.parsers.raw,
+     buffersize: 255});
   m_deviceInitialized = false;
 }
 
@@ -75,21 +78,28 @@ BoomzBox.prototype = {
         return true;
     }
   , sendCommand : function(cmd) {
-        var cmdToSend = (cmd.Length + 5);
-        cmd.CopyTo(cmdToSend, 4);
+        var cmdToSend = new Array(cmd.length + 5);
+	//copy the cmd into the cmdToSend array
+	for (i = 0; i < cmd.length; i++) {
+	   cmdToSend[i+4] = cmd[i];
+	}
         cmdToSend[0] = 0x5A;
         cmdToSend[1] = 0xA5;
-        num = 0;
-        for (i = 2; i < cmdToSend.Length - 1; i++)
+	cmdToSend[2] = 0x00;
+        num = 0x00;
+	for (i = 2; i < cmdToSend.length - 1; i++)
         {
             num = num ^ cmdToSend[i];
         }
-        if (cmdToSend.Length < 255)
+        if (cmdToSend.length < 255)
         {
-            cmdToSend[3] = cmd.Length;
+            cmdToSend[3] = cmd.length;
         }
-        cmdToSend[cmdToSend.Length - 1] = num;
-        addToQueue(cmdToSend);
+        cmdToSend[cmdToSend.length - 1] = num;
+	console.log("the command is"+cmdToSend.join(""));
+	var buffer = new Buffer("5aa50001f3f3");
+	console.log("sending full command ... " + buffer.fromHex().toHex());
+//        addToQueue(cmdToSend);
     }
    , setFunction : function(cmd, set) {
         var b = new Array();
@@ -98,7 +108,7 @@ BoomzBox.prototype = {
 	}
         b.push(cmd);
         var pos = 1;
-        for (var i = 0; i < set.Length; i++)
+        for (var i = 0; i < set.length; i++)
         {
             if (set[i] > 255)
             {
@@ -110,7 +120,7 @@ BoomzBox.prototype = {
                 b.push(set[i]);
             }
         }
-        sendCommand(b);
+        this.sendCommand(b);
     }
 };
 

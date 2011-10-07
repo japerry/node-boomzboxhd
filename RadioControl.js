@@ -1,3 +1,5 @@
+var buffertools = require('buffertools');
+WritableBufferStream = buffertools.WritableBufferStream;
 var http = require('http');
 var sys = require("util"), repl = require("repl");
 var boomzbox = require('./BoomzBox')
@@ -5,7 +7,7 @@ var boomzbox = require('./BoomzBox')
   , express=require('express'),
     app = express.createServer();
   ;
-  
+
 app.use(express.static(__dirname + '/public'));
 app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 
@@ -16,9 +18,8 @@ app.get('/tune', function(req, res){
 });
 //	require('url').parse(req.url);
 //res.end(JSON.stringify(require('url').parse(req.url)));
-
+console.log("starting up");
 app.listen(3000);
-
 //startup settings
             m_responseWaitCount = 0;
             m_waitingOnResponse = false;
@@ -31,52 +32,81 @@ app.listen(3000);
             var start = 0;
             var end = 0;
 	    var Encoding = 'ascii';
+	    var timeOut = 500; // half a second spacing between all commands 
 
-	    var buf = new Buffer(array);
+	    var buf = new Array();
 	    var m_port = radio.m_port;
 
         try
         {
-
             //nextQueue();   
-            //m_statusTimer = new System.Threading.Timer(new TimerCallback(statusTimerCallback), null, 1000, 1000);
-
+            //m_statusTimer = new System.Threading.Timer(new TimerCallback(statusTimerCallback), null, 1000, 1000)
 	   //lets run through the thread every 200ms or so
-     	    setInterval(function() {
-	        m_port.on("data", function (data) {
-		   console.log(data);
-		   buf.push(data);
+		m_port.on("data", function (data) {
+	          // console.log("buffer is " + 0 + " and = " + data.toHex());
+		    //console.log(","+data.toHex());
+		    if(buf.length > 39) {
+			console.log("buffer is big.."+buf);
+			res = doWork();
+			console.log("Result was " + res);
+			buf = new Array();
+		    } else {
+                      var arry = data.toHex().split("");
+		      for(i=0; i < arry.length; i=i+2) {
+		        if (buf.length < 40)
+                        {
+			  buf.push(arry[i]+arry[i+1]);
+                        }
+		      }
+		   }	            
 	        });
-
-                first = true;
-                start = 0;
-                end = 0;
-                byteList = new Array();
-                for (i = 0; i < buf.length - 1; i++)
+		//setInterval(function() {
+	} catch (ex)
+        {
+            Error(ex.Message);
+            if (m_port.IsOpen)
+            {
+                //m_port.DtrEnable = false;
+                m_port.Close();
+            }
+        }
+        function doWork() { 
+               first = true;
+               start = 0;
+               end = 0;
+               byteList = new Array();
+               for (i = 0; i < buf.length - 1; i++)
                 {
-                    if ((buf[i] == 0x5A) && (buf[i + 1] == 0xA5))
+                    if ((buf[i] == '5a') && (buf[i + 1] == 'a5'))
                     {
                         if (first)
                         {
                             start = i;
                             first = false;
+			    console.log("I'm starting the buffer with start " + start );
                         }
                         else
                         {
                             end = i;
-                            var buf2 = new Buffer(end - start);
-                            buf.copy(buf2, 0, start, end - start);
-                            buf.slice(start, end - start);
-                            i -= (end - start);
-                            byteList.push(buf2);
+			    console.log("I'm ending the buffer with start "+start+" and end "+end);
+			    i = buf.length;
                         }
                     }
                 }
-                for (i = 0; i < byteList.Count; i++)
-                {
-                    switch (byteList[i][4])
+		if(start == 0 && end == 0) {
+		  buf = new Array();
+		  return false;
+	        }
+		for(i = 0; i < (end-start);i++) {
+		   byteList.push(buf[start+i]);
+		}
+
+		console.log("bytes look like .." + byteList);
+                //for (i = 0; i < byteList.length; i++)
+                //{
+                    switch (byteList[4])
                     {
-                        case 0xF1: //Status message
+                        case 'f1': //Status message
                             {
                                 //ushort freq = BitConverter.ToUInt16(byteList[i],6);
                                 freq = ((byteList[i][6] << 8) + byteList[i][7]);
@@ -127,7 +157,7 @@ app.listen(3000);
                                 }
                                 break;
                             }
-                        case 0xF2: //RDS
+                        case 'f2': //RDS
                             {
                                 if (!radio.m_HDLock)
                                 {
@@ -145,38 +175,40 @@ app.listen(3000);
                                 }
                                 break;
                             }
-                        case 0xF3: //Power on notice.
+                        case 'f3': //Power on notice.
                             {
-                                if (!m_deviceInitialized)
+                                if (radio.m_deviceInitialized)
                                 {
-                                    radio.m_deviceInitialized = true;
-                                }
-				
-                                m_waitingOnResponse = false;
-                                m_responseWaitCount = 0;
-				
-			        radio.setFunction(radio.Command.Version,[1]);
-			        radio.setFunction(radio.Command.Mute,[1]);
-			        radio.setFunction(radio.Command.Volume,[0]);
-			        radio.setFunction(radio.Command.Antenna,[1]);
-			        radio.setFunction(radio.Command.AutoMessage,[1, 1, 1, 1, 1, 1]);
-			        radio.setFunction(radio.Command.Mute,[0]);
-			        radio.setFunction(radio.Command.Volume,[70]);
-                                //nextQueue();
+				    console.log("Already started up");
+                                    break;
+                                } else {
+				    console.log("Startup detected");
+                                    m_waitingOnResponse = false;
+                                    m_responseWaitCount = 0;
+			            setTimeout(function() { radio.setFunction(radio.Command.Mute,[1]); } , 1000);	
+			            setTimeout(function() { radio.setFunction(radio.Command.Volume,[0]); } , 1000);	
+			            setTimeout(function() { radio.setFunction(radio.Command.Antenna,[1]); } , 1000);	
+			            setTimeout(function() { radio.setFunction(radio.Command.AutoMessage,[1, 1, 1, 1, 1, 1]); } , 1000);	
+			            setTimeout(function() { radio.setFunction(radio.Command.Mute,[0]); } , 1000);	
+			            setTimeout(function() { radio.setFunction(radio.Command.Volume,[70]); } , 1000);
+                                    //nextQueue();
+				    radio.m_deviceInitialized = true;
+				    break;
+				}
                                 break;
                             }
-                        case 0xF5:
+                        case 'f5':
                             {
                                 msg = byteList[i].toString(Encoding);
 				console.log(msg);                                
 				break;
                             }
-                        case 0xF6: //Tuning status message
+                        case 'f6': //Tuning status message
                             {
                                 radio.m_currentChannel.m_HDSignalStrength = byteList[i][6];
                                 break;
                             }
-                        case 0xFF:
+                        case 'ff':
                             {
                                 if (byteList[i][5] == 0x05)
                                 {
@@ -192,16 +224,7 @@ app.listen(3000);
                             }
 
                     }
-                }
-                byteList = [];
-	    } , 100); //sleep every half second or so
-        }
-        catch (ex)
-        {
-            Error(ex.Message);
-            if (m_port.IsOpen)
-            {
-                //m_port.DtrEnable = false;
-                m_port.Close();
-            }
+               // }
+               return true;
+	    //} , 100); //sleep every half second or so
         }
