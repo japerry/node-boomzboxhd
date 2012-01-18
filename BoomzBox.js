@@ -41,21 +41,21 @@ BoomzBox = function (path) {
 
 BoomzBox.prototype = {
   scanDown : function() {
-        setFunction(Command.TuneDown, ['00']);
+        this.setFunction(this.Command.TuneDown, ['00']);
     } 
   , scanUp : function() {
-        setFunction(Command.TuneUp, ['00']);
+        this.setFunction(this.Command.TuneUp, ['00']);
     }
   , seekUp : function() {
         //Seek Up
-        setFunction(Command.Seek_All,['00', '01']);
+        this.setFunction(this.Command.Seek_All,['00', '01']);
     }
   , seekDown : function() {
         //Seek Down
-        setFunction(Command.Seek_All,['01', '01']);
+        this.setFunction(this.Command.Seek_All,['01', '01']);
     }
   , tune : function(value) {
-        setFunction(Command.Tune, ['01', value]);
+        this.this.setFunction(this.Command.Tune, ['01', value]);
     }
   , selectNextHD : function()
     {
@@ -63,11 +63,11 @@ BoomzBox.prototype = {
         {
             if (m_currentChannel.m_currentHDChannel + 1 > m_currentChannel.m_HDChannels)
             {
-                setFunction(Command.HDSelect, ['00']);
+                this.setFunction(this.Command.HDSelect, ['00']);
             }
             else
             {
-                setFunction(Command.HDSelect, [m_currentChannel.m_currentHDChannel]);
+                this.setFunction(this.Command.HDSelect, [m_currentChannel.m_currentHDChannel]);
             }
         }
     }
@@ -86,7 +86,7 @@ BoomzBox.prototype = {
 	}
         cmdToSend[0] = '5a';
         cmdToSend[1] = 'a5';
-	cmdToSend[2] = '00';
+        cmdToSend[2] = '00';
         num = '00';
 	for (i = 4; i < cmdToSend.length - 1; i++)
         {
@@ -97,10 +97,10 @@ BoomzBox.prototype = {
 	    (cmd.length.toString(16).length < 2) ? cmdToSend[3] = '0' + cmd.length.toString(16) : cmdToSend[3] = cmd.length.toString(16);
         }
         cmdToSend[cmdToSend.length - 1] = num.toString(16);
-	console.log("command pre split" + cmdToSend);
-	console.log("the command is"+cmdToSend.join(""));
-	var buffer = new Buffer("5aa50001f3f3");
-	console.log("sending full command ... " + buffer.fromHex().toHex());
+        console.log("command pre split" + cmdToSend);
+        console.log("the command is"+cmdToSend.join(""));
+        var buffer = new Buffer("5aa50001f3f3");
+        console.log("sending full command ... " + buffer.fromHex().toHex());
 //        addToQueue(cmdToSend);
     }
    , setFunction : function(cmd, set) {
