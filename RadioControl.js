@@ -3,7 +3,7 @@ WritableBufferStream = buffertools.WritableBufferStream;
 var http = require('http');
 var sys = require("util"), repl = require("repl");
 var boomzbox = require('./BoomzBox')
-  , radio = boomzbox.connect('/dev/ttyUSB1')
+  , radio = boomzbox.connect('/dev/ttyUSB0')
   , express=require('express'),
     app = express.createServer();
   ;

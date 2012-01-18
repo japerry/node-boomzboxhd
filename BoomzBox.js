@@ -41,21 +41,21 @@ BoomzBox = function (path) {
 
 BoomzBox.prototype = {
   scanDown : function() {
-        setFunction(Command.TuneDown, [0]);
+        setFunction(Command.TuneDown, ['00']);
     } 
   , scanUp : function() {
-        setFunction(Command.TuneUp, [0]);
+        setFunction(Command.TuneUp, ['00']);
     }
   , seekUp : function() {
         //Seek Up
-        setFunction(Command.Seek_All,[0, 1]);
+        setFunction(Command.Seek_All,['00', '01']);
     }
   , seekDown : function() {
         //Seek Down
-        setFunction(Command.Seek_All,[1, 1]);
+        setFunction(Command.Seek_All,['01', '01']);
     }
   , tune : function(value) {
-        setFunction(Command.Tune, [1, value]);
+        setFunction(Command.Tune, ['01', value]);
     }
   , selectNextHD : function()
     {
@@ -63,7 +63,7 @@ BoomzBox.prototype = {
         {
             if (m_currentChannel.m_currentHDChannel + 1 > m_currentChannel.m_HDChannels)
             {
-                setFunction(Command.HDSelect, [0]);
+                setFunction(Command.HDSelect, ['00']);
             }
             else
             {
@@ -78,24 +78,26 @@ BoomzBox.prototype = {
         return true;
     }
   , sendCommand : function(cmd) {
+	console.log("command funct sent ..:"+cmd);
         var cmdToSend = new Array(cmd.length + 5);
 	//copy the cmd into the cmdToSend array
 	for (i = 0; i < cmd.length; i++) {
-	   cmdToSend[i+4] = cmd[i];
+	   (cmd[i].length < 2) ? cmdToSend[i+4] = '0' + cmd[i] : cmdToSend[i+4] = cmd[i];
 	}
-        cmdToSend[0] = 0x5A;
-        cmdToSend[1] = 0xA5;
-	cmdToSend[2] = 0x00;
-        num = 0x00;
-	for (i = 2; i < cmdToSend.length - 1; i++)
+        cmdToSend[0] = '5a';
+        cmdToSend[1] = 'a5';
+	cmdToSend[2] = '00';
+        num = '00';
+	for (i = 4; i < cmdToSend.length - 1; i++)
         {
             num = num ^ cmdToSend[i];
         }
         if (cmdToSend.length < 255)
         {
-            cmdToSend[3] = cmd.length;
+	    (cmd.length.toString(16).length < 2) ? cmdToSend[3] = '0' + cmd.length.toString(16) : cmdToSend[3] = cmd.length.toString(16);
         }
-        cmdToSend[cmdToSend.length - 1] = num;
+        cmdToSend[cmdToSend.length - 1] = num.toString(16);
+	console.log("command pre split" + cmdToSend);
 	console.log("the command is"+cmdToSend.join(""));
 	var buffer = new Buffer("5aa50001f3f3");
 	console.log("sending full command ... " + buffer.fromHex().toHex());
@@ -103,44 +105,33 @@ BoomzBox.prototype = {
     }
    , setFunction : function(cmd, set) {
         var b = new Array();
-        if(cmd.length > 3) {
-	  b.push(cmd >> 8);
-	}
         b.push(cmd);
-        var pos = 1;
         for (var i = 0; i < set.length; i++)
         {
-            if (set[i] > 255)
-            {
-                b.push(set[i] >> 8);
-                b.push(set[i]);
-            }
-            else
-            {
-                b.push(set[i]);
-            }
+	   (set[i].toString(16).length < 2) ? b.push('0' + set[i].toString(16)) : b.push(set[i].toString(16));
+           //b.push(set[i].toString(16));
         }
         this.sendCommand(b);
     }
 };
 
 BoomzBox.prototype.Message = {
-    "Tune" : 0x0102
+    "Tune" : '0102'
   };
 BoomzBox.prototype.Command = {
-	"AutoMessage" : 0x01,
-	"Band" : 0x02,
-	"HDSelect" : 0x04,
-	"Tune" : 0x05,
-	"TuneUp" : 0x06,
-	"TuneDown" : 0x07,
-	"Seek_All" : 0x08,
-	"Seek_HD" : 0x09,
-	"Seek_Stop" : 0x0A,
-	"Volume" : 0x0B,
-	"Version" : 0x0C,
-	"Mute" : 0x0D,
-	"Antenna" : 0x0E
+	"AutoMessage" : '01',
+	"Band" : '02',
+	"HDSelect" : '04',
+	"Tune" : '05',
+	"TuneUp" : '06',
+	"TuneDown" : '07',
+	"Seek_All" : '08',
+	"Seek_HD" : '09',
+	"Seek_Stop" : '0a',
+	"Volume" : '0b',
+	"Version" : '0c',
+	"Mute" : '0d',
+	"Antenna" : '0e'
   };
 
 exports.connect = function (path) {
