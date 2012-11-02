@@ -10,6 +10,9 @@ var sys = require('util');
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
 
+/*
+ * This is the serial port
+ */
 const SERIAL_BAUDRATE = 19200;
 
 var m_port;
