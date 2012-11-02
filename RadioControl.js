@@ -8,6 +8,9 @@ var boomzbox = require('./BoomzBox')
     app = express.createServer();
   ;
 
+/*
+ * This is static! Bad code. should be dynamic
+ */
 app.use(express.static(__dirname + '/public'));
 app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 
